@@ -21,8 +21,8 @@ public class HazelcastEventListener {
     private final HazelcastInstance hazelcastInstance;
 
     @Autowired
-    public HazelcastEventListener(HazelcastInstance hazelcastInstance) {
-        this.hazelcastInstance = hazelcastInstance;
+    public HazelcastEventListener(HazelcastManager hazelcastManager) {
+        this.hazelcastInstance = hazelcastManager.getInstance();
     }
 
     @PostConstruct
