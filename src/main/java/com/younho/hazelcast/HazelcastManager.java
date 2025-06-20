@@ -32,6 +32,7 @@ public class HazelcastManager {
         String clusterName = System.getProperty("msgGroup");
         String instanceName = serverName + "-" + appName;
         logger.info("Resolved Hazelcast Names -> Cluster: [{}], Instance: [{}]", clusterName, instanceName);
+        System.setProperty("hz.zone", serverName);
 
         Config config = new Config();
         config.setClusterName(clusterName);
@@ -40,7 +41,7 @@ public class HazelcastManager {
         // To prevent data loss from a single server failure when running multiple members per host,
         // we define each physical server as a unique zone. This ensures that a partition's primary
         // and backup copies are always on different physical machines.
-        config.setProperty("hz.zone", serverName);
+//        config.setProperty("hazelcast.config.partition.group.zone", serverName);
 
         // Discovering Members by TCP
         NetworkConfig networkConfig = config.getNetworkConfig();
@@ -60,16 +61,13 @@ public class HazelcastManager {
         // Partition Group Configuration
         PartitionGroupConfig partitionGroupConfig = config.getPartitionGroupConfig();
         partitionGroupConfig.setEnabled(true)
-                // That means backups are created in the other zones and each zone is accepted as one partition group.
-                .setGroupType(PartitionGroupConfig.MemberGroupType.ZONE_AWARE);
+                // That means backups are created in the other host and each host is accepted as one partition group.
+                .setGroupType(PartitionGroupConfig.MemberGroupType.HOST_AWARE );
 
         // TODO 적절한 자료 구조 설정하자.
         // --- MultiMap 설정 ---
         MultiMapConfig multiMapConfig = config.getMultiMapConfig("dcol_hist");
         multiMapConfig.setBackupCount(1);
-
-        // TODO Off-Heap (네이티브 메모리) 사용 설정
-//        multiMapConfig.setInMemoryFormat(InMemoryFormat.NATIVE);
 
         // TODO multimap에 eviction policy 또는 expiration policy 주입
 //        int sevenDaysInSeconds = 7 * 24 * 60 * 60;
