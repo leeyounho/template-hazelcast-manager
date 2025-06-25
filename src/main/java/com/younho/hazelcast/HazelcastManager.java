@@ -1,9 +1,6 @@
 package com.younho.hazelcast;
 
-import com.hazelcast.config.Config;
-import com.hazelcast.config.MultiMapConfig;
-import com.hazelcast.config.NetworkConfig;
-import com.hazelcast.config.PartitionGroupConfig;
+import com.hazelcast.config.*;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import org.slf4j.Logger;
@@ -32,16 +29,16 @@ public class HazelcastManager {
         String clusterName = System.getProperty("msgGroup");
         String instanceName = serverName + "-" + appName;
         logger.info("Resolved Hazelcast Names -> Cluster: [{}], Instance: [{}]", clusterName, instanceName);
-        System.setProperty("hz.zone", serverName);
 
         Config config = new Config();
         config.setClusterName(clusterName);
         config.setInstanceName(instanceName);
         config.setProperty("hazelcast.logging.type", "slf4j"); // Setting Logging Type.
-        // To prevent data loss from a single server failure when running multiple members per host,
-        // we define each physical server as a unique zone. This ensures that a partition's primary
-        // and backup copies are always on different physical machines.
-//        config.setProperty("hazelcast.config.partition.group.zone", serverName);
+
+        // Serialization
+        config.getSerializationConfig()
+                .getCompactSerializationConfig()
+                .addSerializer(new DCOLDataHistSerializer());
 
         // Discovering Members by TCP
         NetworkConfig networkConfig = config.getNetworkConfig();
@@ -62,18 +59,30 @@ public class HazelcastManager {
         PartitionGroupConfig partitionGroupConfig = config.getPartitionGroupConfig();
         partitionGroupConfig.setEnabled(true)
                 // That means backups are created in the other host and each host is accepted as one partition group.
-                .setGroupType(PartitionGroupConfig.MemberGroupType.HOST_AWARE );
+                .setGroupType(PartitionGroupConfig.MemberGroupType.HOST_AWARE);
 
-        // TODO 적절한 자료 구조 설정하자.
-        // --- MultiMap 설정 ---
-        MultiMapConfig multiMapConfig = config.getMultiMapConfig("dcol_hist");
-        multiMapConfig.setBackupCount(1);
-
-        // TODO multimap에 eviction policy 또는 expiration policy 주입
-//        int sevenDaysInSeconds = 7 * 24 * 60 * 60;
+        configureDcolHistMap(config);
 
         this.hazelcastInstance = Hazelcast.newHazelcastInstance(config);
         logger.info("Hazelcast instance '{}' initialized successfully and joined cluster '{}'.", instanceName, clusterName);
+    }
+
+    private void configureDcolHistMap(Config config) {
+        MapConfig mapConfig = config.getMapConfig("dcolHist");
+        mapConfig.setBackupCount(1)
+                // If the majority of your cluster operations are reads (get) and writes (put), leaving the data in BINARY format is most efficient.
+                .setInMemoryFormat(InMemoryFormat.BINARY)
+                .setTimeToLiveSeconds(259200); // 3 days
+
+        EvictionConfig evictionConfig = new EvictionConfig();
+        evictionConfig.setEvictionPolicy(EvictionPolicy.LRU);
+        evictionConfig.setMaxSizePolicy(MaxSizePolicy.PER_NODE);
+        evictionConfig.setSize(1000000); // TODO size 고민
+        mapConfig.setEvictionConfig(evictionConfig);
+
+        // partial attribute prefixes may be matched for the ordered composite indexes
+        IndexConfig indexConfig = new IndexConfig(IndexType.SORTED, "eqpId", "workId", "controlJobId", "processJobId");
+        mapConfig.addIndexConfig(indexConfig);
     }
 
     /**
