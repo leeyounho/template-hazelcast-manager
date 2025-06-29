@@ -52,5 +52,4 @@ public class DCOLDataHistSerializer implements CompactSerializer<DCOLDataHist> {
     public String getTypeName() {
         return "dcolHist";
     }
-
 }

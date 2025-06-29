@@ -1,76 +1,84 @@
 package com.younho.hazelcast;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.Serializable;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-@Component // TODO
-public class DCOLDataHistManager {
-    private final DCOLDataHistRepository delegate;
+@Component
+public class DCOLDataHistDbRepository implements DCOLDataHistRepository {
+    // TODO 기존 DCOLDataHistManager 로직 이관 필요
 
-    @Autowired
-    public DCOLDataHistManager(HazelcastManager hazelcastManager, DCOLDataHistDbRepository dbRepository, DCOLDataHistCacheRepository cacheRepository) {
-        if (hazelcastManager.isInitialized()) this.delegate = cacheRepository;
-        else this.delegate = dbRepository;
-    }
-
+    @Override
     public DCOLDataHist get(Serializable id) {
-        return delegate.get(id);
+        return null;
     }
 
+    @Override
     public List<DCOLDataHist> getAll() {
-        return delegate.getAll();
+        return Collections.emptyList();
     }
 
+    @Override
     public List<DCOLDataHist> getByAttribute(String attrName, Object attrValue) {
-        return delegate.getByAttribute(attrName, attrValue);
+        return Collections.emptyList();
     }
 
+    @Override
     public List<DCOLDataHist> getByAttributes(Map<String, Object> attributes) {
-        return delegate.getByAttributes(attributes);
+        return Collections.emptyList();
     }
 
+    @Override
     public void update(DCOLDataHist dcolDataHist) {
-        delegate.update(dcolDataHist);
+
     }
 
+    @Override
     public void delete(DCOLDataHist data) {
-        delegate.delete(data);
+
     }
 
+    @Override
     public void deleteAll(Collection<DCOLDataHist> records) {
-        delegate.deleteAll(records);
+
     }
 
+    @Override
     public void deleteByAttribute(String attrName, Object attrValue) {
-        delegate.deleteByAttribute(attrName, attrValue);
+
     }
 
+    @Override
     public void deleteByAttributes(Map<String, Object> attributes) {
-        delegate.deleteByAttributes(attributes);
+
     }
 
+    @Override
     public void deleteByEqpWork(String eqpId, String workId) {
-        delegate.deleteByEqpWork(eqpId, workId);
+
     }
 
+    @Override
     public void deleteByEqpWorkProcJob(String eqpId, String workId, String processJobId) {
-        delegate.deleteByEqpWorkProcJob(eqpId, workId, processJobId);
+
     }
 
+    @Override
     public void save(DCOLDataHist dcolDataHist) {
-        delegate.save(dcolDataHist);
+
     }
 
+    @Override
     public void saveOrUpdate(DCOLDataHist dcolDataHist) {
-        delegate.saveOrUpdate(dcolDataHist);
+
     }
 
+    @Override
     public void saveOrUpdateAll(Collection<DCOLDataHist> records) {
-        delegate.saveOrUpdateAll(records);
+
     }
 }

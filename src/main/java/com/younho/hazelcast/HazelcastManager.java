@@ -17,13 +17,15 @@ public class HazelcastManager {
 
     private HazelcastInstance hazelcastInstance;
 
-    @Autowired
+//    @Autowired
     public HazelcastManager() {
-        // TODO 필요 시 의존성 주입
+//         TODO ParamManager 의존성 주입
     }
 
     @PostConstruct
     public void initialize() {
+        // TODO 라인 파라미터가 꺼져있으면 바로 return 하는 코드 추가
+
         String serverName = System.getProperty("serverName");
         String appName = System.getProperty("appName");
         String clusterName = System.getProperty("msgGroup");
@@ -85,14 +87,8 @@ public class HazelcastManager {
         mapConfig.addIndexConfig(indexConfig);
     }
 
-    /**
-     * Initiates a graceful shutdown of this Hazelcast member.
-     * The cluster will automatically promote backup partitions to primaries for any data
-     * owned by this node, ensuring no data loss during planned shutdowns or failovers.
-     */
     @PreDestroy
     public void shutdown() {
-        // TODO Manager 를 통해 application 을 종료했을 때 shutdown 메소드가 동작하는지 확인 필요.
         if (this.hazelcastInstance != null) {
             logger.info("Shutting down Hazelcast instance...");
             this.hazelcastInstance.shutdown();
@@ -105,5 +101,9 @@ public class HazelcastManager {
             throw new IllegalStateException("HazelcastManager is not initialized yet.");
         }
         return this.hazelcastInstance;
+    }
+
+    public boolean isInitialized() {
+        return this.hazelcastInstance != null;
     }
 }

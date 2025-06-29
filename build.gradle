@@ -17,6 +17,7 @@ dependencies {
     implementation 'com.hazelcast:hazelcast:5.2.5'
     implementation 'com.hazelcast:hazelcast-spring:5.2.5'
 
+    testImplementation 'org.springframework:spring-test:5.3.39'
     testImplementation platform('org.junit:junit-bom:5.10.0')
     testImplementation 'org.junit.jupiter:junit-jupiter'
 }
