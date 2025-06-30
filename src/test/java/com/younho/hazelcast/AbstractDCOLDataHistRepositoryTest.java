@@ -31,8 +31,20 @@ public abstract class AbstractDCOLDataHistRepositoryTest {
         data.setDcolDate(new Date());
         data.setDcolName("TEST_PARAM");
         data.setDcolOrder(0L);
-        data.setDcolValue(UUID.randomUUID().toString());
+        data.setDcolValue(generateLongString(4000));
         return data;
+    }
+
+    private String generateLongString(int length) {
+        if (length <= 0) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder(length);
+        for (int i = 0; i < length; i++) {
+            char ch = (char) ('A' + (i % 26));
+            sb.append(ch);
+        }
+        return sb.toString();
     }
 
     @Test

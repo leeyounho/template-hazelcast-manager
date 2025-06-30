@@ -4,6 +4,7 @@ import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.flakeidgen.FlakeIdGenerator;
 import com.hazelcast.map.EntryProcessor;
 import com.hazelcast.map.IMap;
+import com.hazelcast.query.PagingPredicate;
 import com.hazelcast.query.Predicate;
 import com.hazelcast.query.Predicates;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +18,16 @@ public class DCOLDataHistCacheRepository implements DCOLDataHistRepository {
     private final HazelcastInstance hazelcastInstance;
     private IMap<Long, DCOLDataHist> dcolHistMap;
     private FlakeIdGenerator idGenerator;
+
+    private static final Comparator<Map.Entry<Long, DCOLDataHist>> DCOL_DATA_HIST_COMPARATOR =
+            Comparator.comparing((Map.Entry<Long, DCOLDataHist> entry) -> entry.getValue().getEqpId())
+                    .thenComparing(entry -> entry.getValue().getWorkId())
+                    .thenComparing(entry -> entry.getValue().getControlJobId())
+                    .thenComparing(entry -> entry.getValue().getProcessJobId())
+                    // no index
+                    .thenComparing(entry -> entry.getValue().getDcolDate())
+                    .thenComparing(entry -> entry.getValue().getDcolName())
+                    .thenComparing(entry -> entry.getValue().getDcolOrder());
 
     @Autowired
     public DCOLDataHistCacheRepository(HazelcastManager hazelcastManager) {
@@ -50,7 +61,13 @@ public class DCOLDataHistCacheRepository implements DCOLDataHistRepository {
             return Collections.emptyList(); // TODO getAll 하면 OOM 날 수도 있으니 null 또는 empty list return 필요
         }
         Predicate<Long, DCOLDataHist> predicate = buildPredicateFromAttributes(attributes);
-        return new ArrayList<>(dcolHistMap.values(predicate));
+
+        // TODO 성능 확인 필요
+        // 모든 결과를 한 번에 가져오기 위해 페이지 크기를 큰 값(예: Integer.MAX_VALUE)으로 설정
+        PagingPredicate<Long, DCOLDataHist> pagingPredicate = Predicates.pagingPredicate(predicate, DCOL_DATA_HIST_COMPARATOR, Integer.MAX_VALUE);
+
+        Collection<DCOLDataHist> sortedValues = dcolHistMap.values(pagingPredicate);
+        return new ArrayList<>(sortedValues);
     }
 
     @Override
