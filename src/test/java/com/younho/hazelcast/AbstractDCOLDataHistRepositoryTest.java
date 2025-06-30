@@ -78,7 +78,7 @@ public abstract class AbstractDCOLDataHistRepositoryTest {
         List<DCOLDataHist> allData = repository.getAll();
 
         assertEquals(2, allData.size());
-        assertThat(allData).usingRecursiveFieldByFieldElementComparator().containsExactlyInAnyOrder(data1, data2);
+        assertThat(allData).usingRecursiveFieldByFieldElementComparator().containsExactly(data1, data2);
     }
 
     @Test
@@ -92,12 +92,16 @@ public abstract class AbstractDCOLDataHistRepositoryTest {
     @Test
     @DisplayName("[getByAttribute] 성공: 단일 속성으로 데이터 조회")
     void getByAttribute_Success_ShouldReturnMatchingData() {
-        repository.save(createDummyData("EQP_X", "WORK_1", "CJOB_1", "PJOB_1"));
-        repository.save(createDummyData("EQP_X", "WORK_2", "CJOB_2", "PJOB_2"));
+        DCOLDataHist data1 = createDummyData("EQP_X", "WORK_1", "CJOB_1", "PJOB_1");
+        DCOLDataHist data2 = createDummyData("EQP_X", "WORK_2", "CJOB_2", "PJOB_2");
+
+        repository.save(data1);
+        repository.save(data2);
 
         List<DCOLDataHist> results = repository.getByAttribute("eqpId", "EQP_X");
 
         assertEquals(2, results.size());
+        assertThat(results).usingRecursiveFieldByFieldElementComparator().containsExactly(data1, data2);
     }
 
     @Test
@@ -125,7 +129,29 @@ public abstract class AbstractDCOLDataHistRepositoryTest {
         List<DCOLDataHist> results = repository.getByAttributes(attributes);
 
         assertEquals(2, results.size());
-        assertThat(results).usingRecursiveFieldByFieldElementComparator().containsExactlyInAnyOrder(data2, data3);
+        assertThat(results).usingRecursiveFieldByFieldElementComparator().containsExactly(data2, data3);
+    }
+
+    @Test
+    @DisplayName("[getByAttributes] 성공: 복합 정렬 기준에 따라 정확하게 정렬된 리스트를 반환한다")
+    void getByAttributes_Success_ShouldReturnResultsSortedByComplexComparator() {
+        DCOLDataHist data1 = createDummyData("EQP_B", "WORK_2", "CJOB_1", "PJOB_1"); // 4번째
+        DCOLDataHist data2 = createDummyData("EQP_A", "WORK_2", "CJOB_1", "PJOB_1"); // 2번째
+        DCOLDataHist data3 = createDummyData("EQP_B", "WORK_1", "CJOB_2", "PJOB_1"); // 3번째
+        DCOLDataHist data4 = createDummyData("EQP_A", "WORK_1", "CJOB_1", "PJOB_1"); // 1번째
+
+        repository.save(data1);
+        repository.save(data2);
+        repository.save(data3);
+        repository.save(data4);
+
+        Map<String, Object> attributes = new HashMap<>();
+        attributes.put("processJobId", "PJOB_1");
+
+        List<DCOLDataHist> results = repository.getByAttributes(attributes);
+
+        assertEquals(4, results.size());
+        assertThat(results).usingRecursiveFieldByFieldElementComparator().containsExactly(data4, data2, data3, data1);
     }
 
     @Test
@@ -241,6 +267,6 @@ public abstract class AbstractDCOLDataHistRepositoryTest {
         repository.saveOrUpdateAll(Arrays.asList(existingData, newData));
 
         assertEquals(2, repository.getAll().size());
-        assertThat(repository.getAll()).usingRecursiveFieldByFieldElementComparator().containsExactlyInAnyOrder(existingData, newData);
+        assertThat(repository.getAll()).usingRecursiveFieldByFieldElementComparator().containsExactly(existingData, newData);
     }
 }

@@ -25,7 +25,7 @@ public class DCOLDataHistCacheRepository implements DCOLDataHistRepository {
                     .thenComparing(entry -> entry.getValue().getControlJobId())
                     .thenComparing(entry -> entry.getValue().getProcessJobId())
                     // no index
-                    .thenComparing(entry -> entry.getValue().getDcolDate())
+//                    .thenComparing(entry -> entry.getValue().getDcolDate())
                     .thenComparing(entry -> entry.getValue().getDcolName())
                     .thenComparing(entry -> entry.getValue().getDcolOrder());
 
@@ -45,7 +45,15 @@ public class DCOLDataHistCacheRepository implements DCOLDataHistRepository {
 
     @Override
     public List<DCOLDataHist> getAll() { // TODO 얘는 삭제해야겠다
-        return new ArrayList<>(dcolHistMap.values());
+        PagingPredicate<Long, DCOLDataHist> pagingPredicate = Predicates.pagingPredicate(
+                Predicates.alwaysTrue(),
+                DCOL_DATA_HIST_COMPARATOR,
+                Integer.MAX_VALUE
+        );
+
+        Collection<DCOLDataHist> sortedValues = dcolHistMap.values(pagingPredicate);
+
+        return new ArrayList<>(sortedValues);
     }
 
     @Override
