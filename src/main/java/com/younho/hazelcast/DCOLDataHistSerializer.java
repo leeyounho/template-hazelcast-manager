@@ -1,9 +1,13 @@
 package com.younho.hazelcast;
 
+import com.hazelcast.nio.serialization.HazelcastSerializationException;
 import com.hazelcast.nio.serialization.compact.CompactReader;
 import com.hazelcast.nio.serialization.compact.CompactSerializer;
 import com.hazelcast.nio.serialization.compact.CompactWriter;
+import org.xerial.snappy.Snappy;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 public class DCOLDataHistSerializer implements CompactSerializer<DCOLDataHist> {
@@ -17,7 +21,15 @@ public class DCOLDataHistSerializer implements CompactSerializer<DCOLDataHist> {
         Date dcolDate = new Date(reader.readInt64("dcolDate"));
         String dcolName = reader.readString("dcolName");
         Long dcolOrder = reader.readNullableInt64("dcolOrder");
-        String dcolValue = reader.readString("dcolValue");
+
+        byte[] compressedValue = reader.readArrayOfInt8("dcolValue");
+        String dcolValue;
+
+        try {
+            dcolValue = Snappy.uncompressString(compressedValue, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new HazelcastSerializationException("Failed to decompress dcolValue with Snappy", e);
+        }
 
         DCOLDataHist dcolDataHist = new DCOLDataHist();
         dcolDataHist.setId(id);
@@ -43,7 +55,14 @@ public class DCOLDataHistSerializer implements CompactSerializer<DCOLDataHist> {
         writer.writeInt64("dcolDate", data.getDcolDate().getTime());
         writer.writeString("dcolName", data.getDcolName());
         writer.writeNullableInt64("dcolOrder", data.getDcolOrder());
-        writer.writeString("dcolValue", data.getDcolValue());
+
+        byte[] compressedValue;
+        try {
+            compressedValue = Snappy.compress(data.getDcolValue(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new HazelcastSerializationException("Failed to compress dcolValue with Snappy", e);
+        }
+        writer.writeArrayOfInt8("dcolValue", compressedValue);
     }
 
     @Override

@@ -13,7 +13,9 @@ import static org.junit.jupiter.api.Assertions.*;
 public abstract class AbstractDCOLDataHistRepositoryTest {
 
     protected DCOLDataHistRepository repository;
+
     protected abstract DCOLDataHistRepository createRepository();
+
     protected abstract void cleanup();
 
     @BeforeEach

@@ -8,10 +8,10 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = TestConfig.class)
-class DCOLDataHistCacheRepositoryTest extends AbstractDCOLDataHistRepositoryTest {
+class DCOLDataHistHazelcastRepositoryTest extends AbstractDCOLDataHistRepositoryTest {
 
     @Autowired
-    private DCOLDataHistCacheRepository cacheRepository;
+    private DCOLDataHistHazelcastRepository cacheRepository;
 
     @Autowired
     private HazelcastManager hazelcastManager;

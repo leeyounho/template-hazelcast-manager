@@ -14,8 +14,9 @@ import java.io.Serializable;
 import java.util.*;
 
 @Component
-public class DCOLDataHistCacheRepository implements DCOLDataHistRepository {
+public class DCOLDataHistHazelcastRepository implements DCOLDataHistRepository {
     private final HazelcastInstance hazelcastInstance;
+    private final HazelcastRetryExecutor retryExecutor;
     private IMap<Long, DCOLDataHist> dcolHistMap;
     private FlakeIdGenerator idGenerator;
 
@@ -30,8 +31,9 @@ public class DCOLDataHistCacheRepository implements DCOLDataHistRepository {
                     .thenComparing(entry -> entry.getValue().getDcolOrder());
 
     @Autowired
-    public DCOLDataHistCacheRepository(HazelcastManager hazelcastManager) {
+    public DCOLDataHistHazelcastRepository(HazelcastManager hazelcastManager, HazelcastRetryExecutor retryExecutor) {
         this.hazelcastInstance = hazelcastManager.getInstance();
+        this.retryExecutor = retryExecutor;
         if (hazelcastInstance != null) {
             this.dcolHistMap = hazelcastInstance.getMap("dcolHist");
             this.idGenerator = hazelcastInstance.getFlakeIdGenerator("dcolHistId");
@@ -40,19 +42,14 @@ public class DCOLDataHistCacheRepository implements DCOLDataHistRepository {
 
     @Override
     public DCOLDataHist get(Serializable id) {
-        return dcolHistMap.get(id);
+        return retryExecutor.get(this.dcolHistMap, id);
     }
 
     @Override
-    public List<DCOLDataHist> getAll() { // TODO 얘는 삭제해야겠다
+    public List<DCOLDataHist> getAll() {
         PagingPredicate<Long, DCOLDataHist> pagingPredicate = Predicates.pagingPredicate(
-                Predicates.alwaysTrue(),
-                DCOL_DATA_HIST_COMPARATOR,
-                Integer.MAX_VALUE
-        );
-
-        Collection<DCOLDataHist> sortedValues = dcolHistMap.values(pagingPredicate);
-
+                Predicates.alwaysTrue(), DCOL_DATA_HIST_COMPARATOR, Integer.MAX_VALUE);
+        Collection<DCOLDataHist> sortedValues = retryExecutor.getValues(this.dcolHistMap, pagingPredicate);
         return new ArrayList<>(sortedValues);
     }
 
@@ -66,15 +63,14 @@ public class DCOLDataHistCacheRepository implements DCOLDataHistRepository {
     @Override
     public List<DCOLDataHist> getByAttributes(Map<String, Object> attributes) {
         if (attributes == null || attributes.isEmpty()) {
-            return Collections.emptyList(); // TODO getAll 하면 OOM 날 수도 있으니 null 또는 empty list return 필요
+            return Collections.emptyList();
         }
-        Predicate<Long, DCOLDataHist> predicate = buildPredicateFromAttributes(attributes);
 
         // TODO 성능 확인 필요
         // 모든 결과를 한 번에 가져오기 위해 페이지 크기를 큰 값(예: Integer.MAX_VALUE)으로 설정
+        Predicate<Long, DCOLDataHist> predicate = buildPredicateFromAttributes(attributes);
         PagingPredicate<Long, DCOLDataHist> pagingPredicate = Predicates.pagingPredicate(predicate, DCOL_DATA_HIST_COMPARATOR, Integer.MAX_VALUE);
-
-        Collection<DCOLDataHist> sortedValues = dcolHistMap.values(pagingPredicate);
+        Collection<DCOLDataHist> sortedValues = retryExecutor.getValues(this.dcolHistMap, pagingPredicate);
         return new ArrayList<>(sortedValues);
     }
 
@@ -83,13 +79,13 @@ public class DCOLDataHistCacheRepository implements DCOLDataHistRepository {
         if (dcolDataHist == null || dcolDataHist.getId() == null) {
             throw new IllegalArgumentException("ID cannot be null for an update operation."); // TODO DB랑 동작 동일하게 맞추자
         }
-        dcolHistMap.put(dcolDataHist.getId(), dcolDataHist);
+        retryExecutor.put(this.dcolHistMap, dcolDataHist.getId(), dcolDataHist);
     }
 
     @Override
     public void delete(DCOLDataHist data) {
         if (data != null && data.getId() != null) {
-            dcolHistMap.delete(data.getId());
+            retryExecutor.delete(this.dcolHistMap, data.getId());
         }
     }
 
@@ -102,15 +98,13 @@ public class DCOLDataHistCacheRepository implements DCOLDataHistRepository {
 
     @Override
     public void deleteByAttributes(Map<String, Object> attributes) {
-        if (attributes == null || attributes.isEmpty()) {
-            return;
-        }
+        if (attributes == null || attributes.isEmpty()) return;
         Predicate<Long, DCOLDataHist> predicate = buildPredicateFromAttributes(attributes);
-
-        dcolHistMap.executeOnEntries((EntryProcessor<Long, DCOLDataHist, Void>) entry -> {
+        EntryProcessor<Long, DCOLDataHist, Void> processor = entry -> {
             entry.setValue(null);
             return null;
-        }, predicate);
+        };
+        retryExecutor.executeOnEntries(this.dcolHistMap, predicate, processor);
     }
 
     @Override
@@ -136,40 +130,35 @@ public class DCOLDataHistCacheRepository implements DCOLDataHistRepository {
 
     @Override
     public void save(DCOLDataHist dcolDataHist) {
-        long newId = idGenerator.newId();
+        long newId = retryExecutor.newId(this.idGenerator);
         dcolDataHist.setId(newId);
-        dcolHistMap.put(newId, dcolDataHist);
+        retryExecutor.put(this.dcolHistMap, newId, dcolDataHist);
     }
 
     @Override
     public void saveOrUpdate(DCOLDataHist dcolDataHist) {
         if (dcolDataHist.getId() == null) {
-            long newId = idGenerator.newId();
-            dcolDataHist.setId(newId);
+            dcolDataHist.setId(retryExecutor.newId(this.idGenerator));
         }
-        dcolHistMap.put(dcolDataHist.getId(), dcolDataHist);
+        retryExecutor.put(this.dcolHistMap, dcolDataHist.getId(), dcolDataHist);
     }
 
     @Override
     public void saveOrUpdateAll(Collection<DCOLDataHist> records) {
-        if (records == null || records.isEmpty()) {
-            return;
-        }
+        if (records == null || records.isEmpty()) return;
         Map<Long, DCOLDataHist> recordMap = new HashMap<>();
         for (DCOLDataHist record : records) {
             if (record.getId() == null) {
-                record.setId(idGenerator.newId());
+                record.setId(retryExecutor.newId(this.idGenerator));
             }
             recordMap.put(record.getId(), record);
         }
-        dcolHistMap.putAll(recordMap);
+        retryExecutor.putAll(this.dcolHistMap, recordMap);
     }
 
     @Override
     public void deleteAll(Collection<DCOLDataHist> records) {
-        if (records == null || records.isEmpty()) {
-            return;
-        }
+        if (records == null || records.isEmpty()) return;
         records.forEach(this::delete);
     }
 

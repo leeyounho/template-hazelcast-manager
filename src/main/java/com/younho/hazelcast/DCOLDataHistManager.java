@@ -13,7 +13,7 @@ public class DCOLDataHistManager {
     private final DCOLDataHistRepository delegate;
 
     @Autowired
-    public DCOLDataHistManager(HazelcastManager hazelcastManager, DCOLDataHistDbRepository dbRepository, DCOLDataHistCacheRepository cacheRepository) {
+    public DCOLDataHistManager(HazelcastManager hazelcastManager, DCOLDataHistDbRepository dbRepository, DCOLDataHistHazelcastRepository cacheRepository) {
         if (hazelcastManager.isInitialized()) this.delegate = cacheRepository;
         else this.delegate = dbRepository;
     }

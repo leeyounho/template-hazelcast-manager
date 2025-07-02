@@ -5,7 +5,7 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 @ComponentScan(basePackages = "com.younho.hazelcast")
-class TestConfig {
+public class TestConfig {
     public TestConfig() {
         System.setProperty("serverName", "TEST_SERVER");
         System.setProperty("appName", "TEST_APP");
