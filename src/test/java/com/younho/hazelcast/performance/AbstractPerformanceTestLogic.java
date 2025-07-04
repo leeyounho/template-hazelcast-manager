@@ -13,8 +13,8 @@ import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public abstract class AbstractDCOLDataHistRepositoryPerformanceTest {
-    private static final Logger logger = LoggerFactory.getLogger(AbstractDCOLDataHistRepositoryPerformanceTest.class);
+public abstract class AbstractPerformanceTestLogic {
+    private static final Logger logger = LoggerFactory.getLogger(AbstractPerformanceTestLogic.class);
 
     protected abstract String getModeName();
 
@@ -53,73 +53,19 @@ public abstract class AbstractDCOLDataHistRepositoryPerformanceTest {
         return sb.toString();
     }
 
-    void bulk_save_performance_test() {
-        // given
-        int recordCount = 50000;
-        List<DCOLDataHist> records = new ArrayList<>(recordCount);
-        for (int i = 0; i < recordCount; i++) {
-            records.add(createDummyData("TEST_EQP", "TEST_WORK", "TEST_CONTROL_JOB", "TEST_PROCESS_JOB", 4000));
-        }
-
-        StopWatch stopWatch = new StopWatch(getModeName() + " Bulk Save Test");
-
-        // when
-        stopWatch.start(recordCount + "건 저장");
-        performBulkSave(records);
-        stopWatch.stop();
-
-        // then
-        printStopWatchResult(stopWatch, recordCount);
-
-        assertThat(getRecordCount()).isEqualTo(recordCount);
-    }
-
-    void bulk_delete_by_attribute_performance_test() {
-        int recordCountToDelete = 50000;
-        int recordCountToKeep = 50000;
-
-        List<DCOLDataHist> recordsToDelete = new ArrayList<>(recordCountToDelete);
-        for (int i = 0; i < recordCountToDelete; i++) {
-            recordsToDelete.add(createDummyData("DELETE_EQP", "TEST_WORK", "TEST_CONTROL_JOB", "TEST_PROCESS_JOB", 4000));
-        }
-
-        List<DCOLDataHist> recordsToKeep = new ArrayList<>(recordCountToKeep);
-        for (int i = 0; i < recordCountToKeep; i++) {
-            recordsToKeep.add(createDummyData("KEEP_EQP", "TEST_WORK", "TEST_CONTROL_JOB", "TEST_PROCESS_JOB", 4000));
-        }
-
-        performBulkSave(recordsToDelete);
-        performBulkSave(recordsToKeep);
-        assertThat(getRecordCount()).isEqualTo(recordCountToDelete + recordCountToKeep);
-
-        Map<String, Object> attributes = new HashMap<>();
-        attributes.put("eqpId", "DELETE_EQP");
-        StopWatch stopWatch = new StopWatch(getModeName() + " Bulk Delete by Attributes Test");
-
-        // when
-        stopWatch.start(recordCountToDelete + "건 속성 기반 삭제");
-        performBulkDeleteByAttributes(attributes);
-        stopWatch.stop();
-
-        // then
-        printStopWatchResult(stopWatch, recordCountToDelete);
-
-        assertThat(getRecordCount()).isEqualTo(recordCountToKeep);
-    }
-
     protected void runHeapUsageLimitTest(String scenarioName, int stringLength, int batchSize) {
         final List<Integer> TARGET_THRESHOLDS = Arrays.asList(30, 40, 50, 60, 70, 80, 90);
         final Map<Integer, Long> results = new TreeMap<>();
         long totalRecordCount = 0;
 
-        logger.info("==================================================================");
+        logger.info("=================================================================================");
         logger.info("[{}] Starting Heap Usage Limit Test...", scenarioName);
         logger.info("  - String Length per Record: {} chars", stringLength);
         logger.info("  - Batch Size: {}", batchSize);
         logHeapUsage("Test Start");
 
         try {
-            for (int i = 0; i < 1000000; i++) { // 최대 100만 배치 (안전장치)
+            for (int i = 0; i < 100_0000; i++) {
                 List<DCOLDataHist> batchRecords = new ArrayList<>(batchSize);
                 for (int j = 0; j < batchSize; j++) {
                     batchRecords.add(createDummyData("TEST_EQP", "TEST_WORK", "TEST_CONTROL_JOB", "TEST_PROCESS_JOB", stringLength));
@@ -140,29 +86,21 @@ public abstract class AbstractDCOLDataHistRepositoryPerformanceTest {
                     }
                 }
 
-                if (currentUsagePercent >= 90) {
-                    logger.warn("Heap usage exceeds 90%. Stopping test to prevent instability.");
+                if (currentUsagePercent >= 80) {
+                    logger.warn("Heap usage exceeds 80%. Stopping test to prevent instability.");
                     break;
                 }
             }
         } catch (Throwable t) {
             logger.error("Test stopped due to throwable (likely OutOfMemoryError): {}", t.getMessage());
         } finally {
-            logger.info("====== [{} Test Summary] ======", scenarioName);
+            logger.info("====== [{} Test Summary] ========================================", scenarioName);
             results.forEach((threshold, count) ->
                     logger.info("- {}% usage at: ~{} records", threshold, String.format("%,d", count))
             );
             logger.info("Final total records before stop: {}", String.format("%,d", totalRecordCount));
-            logger.info("==================================================================");
+            logger.info("=================================================================================");
         }
-    }
-
-    public void limitTest_FewLargeObjects() {
-        runHeapUsageLimitTest("Few Large Objects", 4000, 10000);
-    }
-
-    public void limitTest_ManySmallObjects() {
-        runHeapUsageLimitTest("Many Small Objects", 40, 10000);
     }
 
     protected void logHeapUsage(String phase) {
@@ -195,13 +133,59 @@ public abstract class AbstractDCOLDataHistRepositoryPerformanceTest {
         logger.info("Total Records : {}", String.format("%,d", recordCount));
         logger.info("Total Time    : {} ms", totalTimeMillis);
         logger.info("Throughput    : {} ops/sec", String.format("%,.2f", throughput));
-        logger.info("==================================================================");
+        logger.info("=================================================================================");
     }
 
-    public void get_by_attributes_performance_test() {
+    public void execute_bulk_save_performance_test() {
+        int recordCount = 50000;
+        List<DCOLDataHist> records = new ArrayList<>(recordCount);
+        for (int i = 0; i < recordCount; i++) {
+            records.add(createDummyData("TEST_EQP", "TEST_WORK", "TEST_CONTROL_JOB", "TEST_PROCESS_JOB", 4000));
+        }
+
+        StopWatch stopWatch = new StopWatch(getModeName() + " Bulk Save Test");
+        stopWatch.start(recordCount + "건 저장");
+        performBulkSave(records);
+        stopWatch.stop();
+
+        printStopWatchResult(stopWatch, recordCount);
+        assertThat(getRecordCount()).isEqualTo(recordCount);
+    }
+
+    public void execute_bulk_delete_by_attribute_performance_test() {
+        int recordCountToDelete = 50000;
+        int recordCountToKeep = 50000;
+
+        List<DCOLDataHist> recordsToDelete = new ArrayList<>(recordCountToDelete);
+        for (int i = 0; i < recordCountToDelete; i++) {
+            recordsToDelete.add(createDummyData("DELETE_EQP", "TEST_WORK", "TEST_CONTROL_JOB", "TEST_PROCESS_JOB", 4000));
+        }
+
+        List<DCOLDataHist> recordsToKeep = new ArrayList<>(recordCountToKeep);
+        for (int i = 0; i < recordCountToKeep; i++) {
+            recordsToKeep.add(createDummyData("KEEP_EQP", "TEST_WORK", "TEST_CONTROL_JOB", "TEST_PROCESS_JOB", 4000));
+        }
+
+        performBulkSave(recordsToDelete);
+        performBulkSave(recordsToKeep);
+        assertThat(getRecordCount()).isEqualTo(recordCountToDelete + recordCountToKeep);
+
+        Map<String, Object> attributes = new HashMap<>();
+        attributes.put("eqpId", "DELETE_EQP");
+        StopWatch stopWatch = new StopWatch(getModeName() + " Bulk Delete by Attributes Test");
+
+        stopWatch.start(recordCountToDelete + "건 속성 기반 삭제");
+        performBulkDeleteByAttributes(attributes);
+        stopWatch.stop();
+
+        printStopWatchResult(stopWatch, recordCountToDelete);
+        assertThat(getRecordCount()).isEqualTo(recordCountToKeep);
+    }
+
+    public void execute_get_by_attributes_performance_test() {
         logger.info("[{}] Starting 'Get By Attributes for Batch' Performance Test Setup...", getModeName());
-        final int numberOfGroups = 100;  // 조회할 그룹의 수
-        final int recordsPerGroup = 10000; // 각 그룹당 레코드 수
+        final int numberOfGroups = 100;
+        final int recordsPerGroup = 10000;
         final int totalRecordCount = numberOfGroups * recordsPerGroup;
 
         List<DCOLDataHist> allRecords = new ArrayList<>(totalRecordCount);
@@ -243,5 +227,13 @@ public abstract class AbstractDCOLDataHistRepositoryPerformanceTest {
 
         logger.info("Total {} batch queries executed.", numberOfGroups);
         printStopWatchResult(stopWatch, numberOfGroups);
+    }
+
+    public void execute_limitTest_FewLargeObjects() {
+        runHeapUsageLimitTest("Few Large Objects", 4000, 10000);
+    }
+
+    public void execute_limitTest_ManySmallObjects() {
+        runHeapUsageLimitTest("Many Small Objects", 40, 10000);
     }
 }
