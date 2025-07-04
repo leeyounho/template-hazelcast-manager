@@ -68,7 +68,7 @@ public abstract class AbstractPerformanceTestLogic {
             for (int i = 0; i < 100_0000; i++) {
                 List<DCOLDataHist> batchRecords = new ArrayList<>(batchSize);
                 for (int j = 0; j < batchSize; j++) {
-                    batchRecords.add(createDummyData("TEST_EQP", "TEST_WORK", "TEST_CONTROL_JOB", "TEST_PROCESS_JOB", stringLength));
+                    batchRecords.add(createDummyData("TEST_EQP", "TEST_WORK_123456789101112131415161718192", "TEST_CONTROL_JOB_ID", "TEST_PROCESS_JOB_ID", stringLength));
                 }
                 performBulkSave(batchRecords);
                 totalRecordCount += batchSize;
@@ -140,7 +140,7 @@ public abstract class AbstractPerformanceTestLogic {
         int recordCount = 50000;
         List<DCOLDataHist> records = new ArrayList<>(recordCount);
         for (int i = 0; i < recordCount; i++) {
-            records.add(createDummyData("TEST_EQP", "TEST_WORK", "TEST_CONTROL_JOB", "TEST_PROCESS_JOB", 4000));
+            records.add(createDummyData("TEST_EQP", "TEST_WORK_123456789101112131415161718192", "TEST_CONTROL_JOB_ID", "TEST_PROCESS_JOB_ID", 4000));
         }
 
         StopWatch stopWatch = new StopWatch(getModeName() + " Bulk Save Test");
@@ -225,8 +225,14 @@ public abstract class AbstractPerformanceTestLogic {
         }
         stopWatch.stop();
 
-        logger.info("Total {} batch queries executed.", numberOfGroups);
         printStopWatchResult(stopWatch, numberOfGroups);
+
+        logger.info("    -> Detail: {} batch queries ({} records each) for a total of {} records.",
+                numberOfGroups,
+                recordsPerGroup,
+                String.format("%,d", totalRecordCount));
+        logger.info("    -> Throughput is measured in 'batch queries per second'.");
+        logger.info("==================================================================");
     }
 
     public void execute_limitTest_FewLargeObjects() {
