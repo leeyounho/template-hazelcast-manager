@@ -78,7 +78,7 @@ public class HazelcastManager {
         EvictionConfig evictionConfig = new EvictionConfig();
         evictionConfig.setEvictionPolicy(EvictionPolicy.LRU);
         evictionConfig.setMaxSizePolicy(MaxSizePolicy.PER_NODE);
-        evictionConfig.setSize(1000000); // TODO size 고민
+        evictionConfig.setSize(1000_0000);
         mapConfig.setEvictionConfig(evictionConfig);
 
         // partial attribute prefixes may be matched for the ordered composite indexes

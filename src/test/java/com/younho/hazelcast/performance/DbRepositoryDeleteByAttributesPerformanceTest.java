@@ -28,6 +28,11 @@ public class DbRepositoryDeleteByAttributesPerformanceTest extends AbstractDCOLD
     }
 
     @Override
+    protected List<DCOLDataHist> performGetByAttributes(Map<String, Object> attributes) {
+        return dbRepository.getByAttributes(attributes);
+    }
+
+    @Override
     protected void performBulkSave(List<DCOLDataHist> records) {
         dbRepository.saveOrUpdateAll(records);
     }

@@ -18,6 +18,8 @@ public abstract class AbstractDCOLDataHistRepositoryPerformanceTest {
 
     protected abstract String getModeName();
 
+    protected abstract List<DCOLDataHist> performGetByAttributes(Map<String, Object> attributes);
+
     protected abstract void performBulkSave(List<DCOLDataHist> records);
 
     protected abstract void performBulkDeleteByAttributes(Map<String, Object> attributes);
@@ -194,5 +196,52 @@ public abstract class AbstractDCOLDataHistRepositoryPerformanceTest {
         logger.info("Total Time    : {} ms", totalTimeMillis);
         logger.info("Throughput    : {} ops/sec", String.format("%,.2f", throughput));
         logger.info("==================================================================");
+    }
+
+    public void get_by_attributes_performance_test() {
+        logger.info("[{}] Starting 'Get By Attributes for Batch' Performance Test Setup...", getModeName());
+        final int numberOfGroups = 100;  // 조회할 그룹의 수
+        final int recordsPerGroup = 10000; // 각 그룹당 레코드 수
+        final int totalRecordCount = numberOfGroups * recordsPerGroup;
+
+        List<DCOLDataHist> allRecords = new ArrayList<>(totalRecordCount);
+        List<Map<String, Object>> queries = new ArrayList<>(numberOfGroups);
+
+        for (int i = 0; i < numberOfGroups; i++) {
+            String eqpId = "EQP_BATCH_" + (i % 5);
+            String workId = "WORK_BATCH_" + (i % 10);
+            String controlJobId = "CJOB_BATCH_" + i;
+            String processJobId = "PJOB_BATCH_" + i;
+
+            Map<String, Object> groupKey = new HashMap<>();
+            groupKey.put("eqpId", eqpId);
+            groupKey.put("workId", workId);
+            groupKey.put("controlJobId", controlJobId);
+            groupKey.put("processJobId", processJobId);
+            queries.add(groupKey);
+
+            for (int j = 0; j < recordsPerGroup; j++) {
+                DCOLDataHist record = createDummyData(eqpId, workId, controlJobId, processJobId, 100);
+                record.setDcolName("PARAM_DATA");
+                record.setDcolOrder((long) j);
+                allRecords.add(record);
+            }
+        }
+
+        performBulkSave(allRecords);
+        assertThat(getRecordCount()).isEqualTo(totalRecordCount);
+        logger.info("Setup complete. {} groups, {} records per group, total {} records saved.", numberOfGroups, recordsPerGroup, totalRecordCount);
+
+        StopWatch stopWatch = new StopWatch(getModeName() + " Get By Full Attributes (Batch) Performance Test");
+
+        stopWatch.start(numberOfGroups + "건의 전체 속성 기반 '배치' 조회");
+        for (Map<String, Object> query : queries) {
+            List<DCOLDataHist> results = performGetByAttributes(query);
+            assertThat(results.size()).isEqualTo(recordsPerGroup);
+        }
+        stopWatch.stop();
+
+        logger.info("Total {} batch queries executed.", numberOfGroups);
+        printStopWatchResult(stopWatch, numberOfGroups);
     }
 }

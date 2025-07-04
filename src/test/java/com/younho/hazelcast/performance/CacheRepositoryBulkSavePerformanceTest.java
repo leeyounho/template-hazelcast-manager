@@ -33,6 +33,11 @@ public class CacheRepositoryBulkSavePerformanceTest extends AbstractDCOLDataHist
     }
 
     @Override
+    protected List<DCOLDataHist> performGetByAttributes(Map<String, Object> attributes) {
+        return cacheRepository.getByAttributes(attributes);
+    }
+
+    @Override
     protected void performBulkSave(List<DCOLDataHist> records) {
         cacheRepository.saveOrUpdateAll(records);
     }

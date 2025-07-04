@@ -1,7 +1,8 @@
 package com.younho.hazelcast.performance;
 
 import com.younho.hazelcast.DCOLDataHist;
-import com.younho.hazelcast.DCOLDataHistDbRepository;
+import com.younho.hazelcast.DCOLDataHistHazelcastRepository;
+import com.younho.hazelcast.HazelcastManager;
 import com.younho.hazelcast.TestConfig;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,41 +18,43 @@ import java.util.Map;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = TestConfig.class)
-public class DbRepositoryBulkSavePerformanceTest extends AbstractDCOLDataHistRepositoryPerformanceTest {
+public class CacheRepositoryGetByAttributesPerformanceTest extends AbstractDCOLDataHistRepositoryPerformanceTest {
+    private String mapName = "dcolHist";
 
     @Autowired
-    private DCOLDataHistDbRepository dbRepository;
+    private DCOLDataHistHazelcastRepository cacheRepository;
+
+    @Autowired
+    private HazelcastManager hazelcastManager;
 
     @Override
     protected String getModeName() {
-        return "Database Mode";
+        return "Cache Mode";
     }
-
 
     @Override
     protected List<DCOLDataHist> performGetByAttributes(Map<String, Object> attributes) {
-        return dbRepository.getByAttributes(attributes);
+        return cacheRepository.getByAttributes(attributes);
     }
 
     @Override
     protected void performBulkSave(List<DCOLDataHist> records) {
-        dbRepository.saveOrUpdateAll(records);
+        cacheRepository.saveOrUpdateAll(records);
     }
 
     @Override
     protected void performBulkDeleteByAttributes(Map<String, Object> attributes) {
-        dbRepository.deleteByAttributes(attributes);
+        cacheRepository.deleteByAttributes(attributes);
     }
 
     @Override
     protected long getRecordCount() {
-        // TODO
-        return 0L;
+        return hazelcastManager.getInstance().getMap(mapName).size();
     }
 
     @Override
     protected void cleanup() {
-        // TODO
+        hazelcastManager.getInstance().getMap(mapName).clear();
     }
 
     @BeforeEach
@@ -65,16 +68,9 @@ public class DbRepositoryBulkSavePerformanceTest extends AbstractDCOLDataHistRep
     }
 
     @Test
-    @DisplayName("대량 데이터 저장 성능 측정")
+    @DisplayName("[Cache Mode] 복합 인덱스 속성 기반 조회 성능 측정")
     @Override
-    public void bulk_save_performance_test() {
-        super.bulk_save_performance_test();
-    }
-
-    @Test
-    @DisplayName("대량 데이터 삭제 성능 측정")
-    @Override
-    public void bulk_delete_by_attribute_performance_test() {
-        super.bulk_delete_by_attribute_performance_test();
+    public void get_by_attributes_performance_test() {
+        super.get_by_attributes_performance_test();
     }
 }
