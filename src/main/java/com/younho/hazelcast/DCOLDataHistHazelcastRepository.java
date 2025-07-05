@@ -42,7 +42,7 @@ public class DCOLDataHistHazelcastRepository implements DCOLDataHistRepository {
 
     @Override
     public DCOLDataHist get(Serializable id) {
-        return retryExecutor.get(this.dcolHistMap, id);
+        return retryExecutor.get(this.dcolHistMap, (Long) id);
     }
 
     @Override

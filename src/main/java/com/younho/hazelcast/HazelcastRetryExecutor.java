@@ -4,13 +4,11 @@ import com.hazelcast.core.HazelcastException;
 import com.hazelcast.flakeidgen.FlakeIdGenerator;
 import com.hazelcast.map.EntryProcessor;
 import com.hazelcast.map.IMap;
-import com.hazelcast.query.PagingPredicate;
 import com.hazelcast.query.Predicate;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 
-import java.io.Serializable;
 import java.util.Collection;
 import java.util.Map;
 
@@ -18,33 +16,33 @@ import java.util.Map;
 public class HazelcastRetryExecutor {
 
     @Retryable(value = HazelcastException.class, maxAttempts = 3, backoff = @Backoff(delay = 1000))
-    public DCOLDataHist get(IMap<Long, DCOLDataHist> map, Serializable id) {
+    public <K, V> V get(IMap<K, V> map, K id) {
         return map.get(id);
     }
 
     @Retryable(value = HazelcastException.class, maxAttempts = 3, backoff = @Backoff(delay = 1000))
-    public Collection<DCOLDataHist> getValues(IMap<Long, DCOLDataHist> map, PagingPredicate<Long, DCOLDataHist> predicate) {
+    public <K, V> Collection<V> getValues(IMap<K, V> map, Predicate<K, V> predicate) {
         return map.values(predicate);
     }
 
     @Retryable(value = HazelcastException.class, maxAttempts = 3, backoff = @Backoff(delay = 1000))
-    public void put(IMap<Long, DCOLDataHist> map, Long id, DCOLDataHist data) {
+    public <K, V> void put(IMap<K, V> map, K id, V data) {
         map.put(id, data);
     }
 
     @Retryable(value = HazelcastException.class, maxAttempts = 3, backoff = @Backoff(delay = 1000))
-    public void putAll(IMap<Long, DCOLDataHist> map, Map<Long, DCOLDataHist> recordMap) {
+    public <K, V> void putAll(IMap<K, V> map, Map<K, V> recordMap) {
         map.putAll(recordMap);
     }
 
     @Retryable(value = HazelcastException.class, maxAttempts = 3, backoff = @Backoff(delay = 1000))
-    public void delete(IMap<Long, DCOLDataHist> map, Long id) {
+    public <K, V> void delete(IMap<K, V> map, K id) {
         map.delete(id);
     }
 
     @Retryable(value = HazelcastException.class, maxAttempts = 3, backoff = @Backoff(delay = 1000))
-    public void executeOnEntries(IMap<Long, DCOLDataHist> map, Predicate<Long, DCOLDataHist> predicate, EntryProcessor<Long, DCOLDataHist, Void> processor) {
-        map.executeOnEntries(processor, predicate);
+    public <K, V, R> Map<K, R> executeOnEntries(IMap<K, V> map, Predicate<K, V> predicate, EntryProcessor<K, V, R> processor) {
+        return map.executeOnEntries(processor, predicate);
     }
 
     @Retryable(value = HazelcastException.class, maxAttempts = 3, backoff = @Backoff(delay = 1000))
