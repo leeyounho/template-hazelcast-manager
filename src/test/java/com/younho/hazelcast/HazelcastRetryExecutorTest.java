@@ -42,6 +42,11 @@ class HazelcastRetryExecutorTest {
         public HazelcastRetryExecutor hazelcastRetryExecutor() {
             return new HazelcastRetryExecutor();
         }
+
+        @Bean
+        public HazelcastRetryListener hazelcastRetryListener() {
+            return new HazelcastRetryListener();
+        }
     }
 
     @Autowired
