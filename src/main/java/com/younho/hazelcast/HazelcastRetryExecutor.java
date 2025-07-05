@@ -7,7 +7,6 @@ import com.hazelcast.map.IMap;
 import com.hazelcast.query.PagingPredicate;
 import com.hazelcast.query.Predicate;
 import org.springframework.retry.annotation.Backoff;
-import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 
@@ -16,7 +15,6 @@ import java.util.Collection;
 import java.util.Map;
 
 @Component
-@EnableRetry
 public class HazelcastRetryExecutor {
 
     @Retryable(value = HazelcastException.class, maxAttempts = 3, backoff = @Backoff(delay = 1000))
