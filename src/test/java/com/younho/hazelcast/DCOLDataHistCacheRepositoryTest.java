@@ -10,6 +10,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.util.*;
 
+import static com.younho.hazelcast.HazelcastManager.DCOL_HIST;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -27,7 +28,7 @@ class DCOLDataHistCacheRepositoryTest extends AbstractDCOLDataHistRepositoryTest
 
     @Override
     protected DCOLDataHistRepository createRepository() {
-        this.dcolHistMap = hazelcastManager.getInstance().getMap("dcolHist");
+        this.dcolHistMap = hazelcastManager.getInstance().getMap(DCOL_HIST);
         return cacheRepository;
     }
 
@@ -248,6 +249,7 @@ class DCOLDataHistCacheRepositoryTest extends AbstractDCOLDataHistRepositoryTest
         assertEquals(2, repository.getAll().size());
         assertThat(repository.getAll()).usingRecursiveFieldByFieldElementComparator().containsExactlyInAnyOrder(existingData, newData);
     }
+
     @Test
 
     @DisplayName("[Cache Mode][deleteAll] 성공: 여러 데이터 한번에 삭제")

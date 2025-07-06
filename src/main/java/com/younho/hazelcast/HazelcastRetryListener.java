@@ -20,10 +20,10 @@ public class HazelcastRetryListener implements RetryListener {
     @Override
     public <T, E extends Throwable> void close(RetryContext context, RetryCallback<T, E> callback, Throwable throwable) {
         if (context.getRetryCount() > 0 && throwable == null) {
-            logger.info("[Hazelcast Retry] Operation succeeded after {} attempt(s).", context.getRetryCount());
+            logger.info("[Hazelcast] Retry operation succeeded after {} attempt(s).", context.getRetryCount());
         }
         if (throwable != null) {
-            logger.error("[Hazelcast Retry] Operation failed after {} attempt(s).", context.getRetryCount(), throwable);
+            logger.error("[Hazelcast] Retry operation failed after {} attempt(s).", context.getRetryCount(), throwable);
         }
     }
 

@@ -30,7 +30,7 @@ public class HazelcastEventListener {
         hazelcastInstance.getCluster().addMembershipListener(new MyMembershipListener());
         hazelcastInstance.getLifecycleService().addLifecycleListener(new MyLifecycleListener());
         hazelcastInstance.getPartitionService().addPartitionLostListener(new MyPartitionLostListener());
-        logger.info("Hazelcast event listener registered");
+        logger.info("[Hazelcast] Hazelcast event listener registered");
     }
 
     private static class MyMembershipListener implements MembershipListener {

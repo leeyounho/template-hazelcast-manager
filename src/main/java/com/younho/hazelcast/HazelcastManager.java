@@ -3,8 +3,10 @@ package com.younho.hazelcast;
 import com.hazelcast.config.*;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
+import com.hazelcast.map.IMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -13,12 +15,14 @@ import javax.annotation.PreDestroy;
 @Component
 public class HazelcastManager {
     private static final Logger logger = LoggerFactory.getLogger(HazelcastManager.class);
+    public static final String DCOL_HIST = "dcolHist";
 
+    private final DCOLDataHistMapListener dcolDataHistMapListener;
     private HazelcastInstance hazelcastInstance;
 
-//    @Autowired
-    public HazelcastManager() {
-//         TODO ParamManager 의존성 주입
+    @Autowired
+    public HazelcastManager(DCOLDataHistMapListener dcolDataHistMapListener) {
+        this.dcolDataHistMapListener = dcolDataHistMapListener;
     }
 
     @PostConstruct
@@ -29,7 +33,7 @@ public class HazelcastManager {
         String appName = System.getProperty("appName");
         String clusterName = System.getProperty("msgGroup");
         String instanceName = serverName + "-" + appName;
-        logger.info("Resolved Hazelcast Names -> Cluster: [{}], Instance: [{}]", clusterName, instanceName);
+        logger.info("[Hazelcast] Resolved Hazelcast Names -> Cluster: [{}], Instance: [{}]", clusterName, instanceName);
 
         Config config = new Config();
         config.setClusterName(clusterName);
@@ -65,11 +69,24 @@ public class HazelcastManager {
         configureDcolHistMap(config);
 
         this.hazelcastInstance = Hazelcast.newHazelcastInstance(config);
-        logger.info("Hazelcast instance '{}' initialized successfully and joined cluster '{}'.", instanceName, clusterName);
+        logger.info("[Hazelcast] Hazelcast instance '{}' initialized successfully and joined cluster '{}'.", instanceName, clusterName);
+
+        addMapListeners();
+    }
+
+    private void addMapListeners() {
+        try {
+            IMap<Long, DCOLDataHist> dcolHistMap = this.hazelcastInstance.getMap(DCOL_HIST);
+            dcolHistMap.addEntryListener(this.dcolDataHistMapListener, true);
+
+            logger.info("[Hazelcast] Successfully added DCOLDataHistEvictionListener to '{}' map.", DCOL_HIST);
+        } catch (Exception e) {
+            logger.error("[Hazelcast] Failed to add listener to '{}' map.", DCOL_HIST, e);
+        }
     }
 
     private void configureDcolHistMap(Config config) {
-        MapConfig mapConfig = config.getMapConfig("dcolHist");
+        MapConfig mapConfig = config.getMapConfig(DCOL_HIST);
         mapConfig.setBackupCount(1)
                 // If the majority of your cluster operations are reads (get) and writes (put), leaving the data in BINARY format is most efficient.
                 .setInMemoryFormat(InMemoryFormat.BINARY)
@@ -89,9 +106,9 @@ public class HazelcastManager {
     @PreDestroy
     public void shutdown() {
         if (this.hazelcastInstance != null) {
-            logger.info("Shutting down Hazelcast instance...");
+            logger.info("[Hazelcast] Shutting down Hazelcast instance...");
             this.hazelcastInstance.shutdown();
-            logger.info("Hazelcast instance shut down successfully.");
+            logger.info("[Hazelcast] Hazelcast instance shut down successfully.");
         }
     }
 

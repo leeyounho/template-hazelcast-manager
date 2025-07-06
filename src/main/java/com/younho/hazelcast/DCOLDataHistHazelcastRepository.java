@@ -13,6 +13,8 @@ import org.springframework.stereotype.Component;
 import java.io.Serializable;
 import java.util.*;
 
+import static com.younho.hazelcast.HazelcastManager.DCOL_HIST;
+
 @Component
 public class DCOLDataHistHazelcastRepository implements DCOLDataHistRepository {
     private final HazelcastInstance hazelcastInstance;
@@ -35,7 +37,7 @@ public class DCOLDataHistHazelcastRepository implements DCOLDataHistRepository {
         this.hazelcastInstance = hazelcastManager.getInstance();
         this.retryExecutor = retryExecutor;
         if (hazelcastInstance != null) {
-            this.dcolHistMap = hazelcastInstance.getMap("dcolHist");
+            this.dcolHistMap = hazelcastInstance.getMap(DCOL_HIST);
             this.idGenerator = hazelcastInstance.getFlakeIdGenerator("dcolHistId");
         }
     }

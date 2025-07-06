@@ -10,6 +10,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
+import static com.younho.hazelcast.HazelcastManager.DCOL_HIST;
+
 public class DCOLDataHistSerializer implements CompactSerializer<DCOLDataHist> {
     @Override
     public DCOLDataHist read(CompactReader reader) {
@@ -72,6 +74,6 @@ public class DCOLDataHistSerializer implements CompactSerializer<DCOLDataHist> {
 
     @Override
     public String getTypeName() {
-        return "dcolHist";
+        return DCOL_HIST;
     }
 }
