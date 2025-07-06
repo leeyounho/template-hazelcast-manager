@@ -8,4 +8,9 @@ import org.springframework.retry.annotation.EnableRetry;
 @EnableRetry
 @ComponentScan(basePackages = "com.younho.hazelcast")
 public class AppConfig {
+    public AppConfig() {
+        System.setProperty("serverName", "TEST_SERVER");
+        System.setProperty("appName", "TEST_APP");
+        System.setProperty("msgGroup", "TEST_MSG_GROUP");
+    }
 }

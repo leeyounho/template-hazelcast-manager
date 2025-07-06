@@ -4,6 +4,7 @@ import com.hazelcast.config.*;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.map.IMap;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,11 +19,13 @@ public class HazelcastManager {
     public static final String DCOL_HIST = "dcolHist";
 
     private final DCOLDataHistMapListener dcolDataHistMapListener;
+    private final MeterRegistry meterRegistry;
     private HazelcastInstance hazelcastInstance;
 
     @Autowired
-    public HazelcastManager(DCOLDataHistMapListener dcolDataHistMapListener) {
+    public HazelcastManager(DCOLDataHistMapListener dcolDataHistMapListener, MeterRegistry meterRegistry) {
         this.dcolDataHistMapListener = dcolDataHistMapListener;
+        this.meterRegistry = meterRegistry;
     }
 
     @PostConstruct
@@ -39,6 +42,10 @@ public class HazelcastManager {
         config.setClusterName(clusterName);
         config.setInstanceName(instanceName);
         config.setProperty("hazelcast.logging.type", "slf4j"); // Setting Logging Type.
+
+        // For metrics
+        config.setProperty("hazelcast.metrics.enabled", "true");
+        config.setProperty("hazelcast.metrics.micrometer.enabled", "true");
 
         // Serialization
         config.getSerializationConfig()

@@ -21,6 +21,10 @@ dependencies {
     implementation 'org.xerial.snappy:snappy-java:1.1.10.5'
     implementation 'org.aspectj:aspectjweaver:1.9.7'
 
+    // for metric
+    implementation 'io.micrometer:micrometer-core:1.15.0'
+    implementation 'io.micrometer:micrometer-registry-prometheus:1.15.0'
+
     testImplementation platform('org.junit:junit-bom:5.10.0')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testImplementation 'org.springframework:spring-test:5.3.39'
