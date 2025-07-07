@@ -4,7 +4,10 @@ import com.hazelcast.config.*;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.map.IMap;
+import io.micrometer.core.instrument.ImmutableTag;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tag;
+import io.micrometer.core.instrument.binder.cache.HazelcastCacheMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +15,8 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import java.util.Arrays;
+import java.util.List;
 
 @Component
 public class HazelcastManager {
@@ -39,13 +44,9 @@ public class HazelcastManager {
         logger.info("[Hazelcast] Resolved Hazelcast Names -> Cluster: [{}], Instance: [{}]", clusterName, instanceName);
 
         Config config = new Config();
-        config.setClusterName(clusterName);
-        config.setInstanceName(instanceName);
-        config.setProperty("hazelcast.logging.type", "slf4j"); // Setting Logging Type.
-
-        // For metrics
-        config.setProperty("hazelcast.metrics.enabled", "true");
-        config.setProperty("hazelcast.metrics.micrometer.enabled", "true");
+        config.setClusterName(clusterName)
+                .setInstanceName(instanceName)
+                .setProperty("hazelcast.logging.type", "slf4j"); // Setting Logging Type.
 
         // Serialization
         config.getSerializationConfig()
@@ -56,10 +57,10 @@ public class HazelcastManager {
         NetworkConfig networkConfig = config.getNetworkConfig();
         networkConfig.setPort(8000)
                 .setPortAutoIncrement(true)
-                .setPortCount(100);
-        // Allows the socket to bind to an address that is in the TIME_WAIT state, enabling a fast restart of the member.
-        networkConfig.setReuseAddress(true);
-        networkConfig.getInterfaces()
+                .setPortCount(100)
+                // Allows the socket to bind to an address that is in the TIME_WAIT state, enabling a fast restart of the member.
+                .setReuseAddress(true)
+                .getInterfaces()
                 .setEnabled(true)
                 .addInterface("127.0.0.1"); // TODO 내 server IP 추가 필요
         networkConfig.getJoin().getTcpIpConfig()
@@ -79,6 +80,12 @@ public class HazelcastManager {
         logger.info("[Hazelcast] Hazelcast instance '{}' initialized successfully and joined cluster '{}'.", instanceName, clusterName);
 
         addMapListeners();
+        registerMetrics();
+    }
+
+    private void registerMetrics() {
+        List<Tag> tags = Arrays.asList(new ImmutableTag("mapName", DCOL_HIST));
+        HazelcastCacheMetrics.monitor(meterRegistry, hazelcastInstance.getMap(DCOL_HIST), tags);
     }
 
     private void addMapListeners() {
